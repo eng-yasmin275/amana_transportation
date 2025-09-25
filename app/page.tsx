@@ -1,11 +1,22 @@
 'use client';
 
 import { useState } from "react";
-import { QRCodeCanvas } from "qrcode.react";
+
 import amanaData from "@/lib/amanaData";
-import MapView from "@/components/MapView";
+
+import dynamic from "next/dynamic";
+
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+
+
+const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
+
+// Dynamically import QRCodeCanvas so it runs only on client
+const QRCodeCanvas = dynamic(
+  () => import("qrcode.react").then((mod) => mod.QRCodeCanvas),
+  { ssr: false }
+);
 
 export default function HomePage() {
   const [selectedBusId, setSelectedBusId] = useState<number | null>(null);
