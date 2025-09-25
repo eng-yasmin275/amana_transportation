@@ -1,103 +1,179 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState } from "react";
+import { QRCodeCanvas } from "qrcode.react";
+import amanaData from "@/lib/amanaData";
+import MapView from "@/components/MapView";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+
+export default function HomePage() {
+  const [selectedBusId, setSelectedBusId] = useState<number | null>(null);
+  const [ticketBought, setTicketBought] = useState(false);
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [selectedStopId, setSelectedStopId] = useState<number | null>(null);
+
+  const selectedBus = amanaData.bus_lines.find((b) => b.id === selectedBusId);
+  const selectedStop = selectedBus?.bus_stops.find((s) => s.id === selectedStopId);
+
+  const handleBuyTicket = () => {
+    if (!selectedBus || !selectedStop) return;
+    setTicketBought(true);
+  };
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="flex flex-col min-h-screen p-4">
+      {/* Header */}
+      <Header />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      {/* Yellow Banner */}
+      <div className="bg-yellow-400 text-black text-center py-3 font-semibold mt-2">
+        Active Bus Maps
+      </div>
+
+      {/* Bus Buttons Above Map */}
+      <div className="flex flex-wrap justify-center gap-3 my-4">
+        {amanaData.bus_lines.map((bus) => (
+          <button
+            key={bus.id}
+            onClick={() => {
+              setSelectedBusId(bus.id);
+              setSelectedStopId(null);
+              setTicketBought(false);
+            }}
+            className={`px-4 py-2 rounded-lg border ${
+              selectedBusId === bus.id ? "bg-blue-500 text-white" : "bg-gray-100 text-black"
+            }`}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            {bus.route_number} - {bus.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Map */}
+      <div className="w-full h-96 sm:h-[430px] rounded-lg overflow-hidden border border-gray-200">
+        <MapView selectedBus={selectedBus} />
+      </div>
+
+      {/* Ticket Buy Section */}
+      {selectedBus && (
+        <div className="flex flex-col items-center mt-4 gap-2">
+          <select
+            value={selectedStopId ?? ""}
+            onChange={(e) => {
+              setSelectedStopId(Number(e.target.value));
+              setTicketBought(false);
+            }}
+            className="px-3 py-2 border rounded-lg"
           >
-            Read our docs
-          </a>
+            <option value="">Select Stop</option>
+            {selectedBus.bus_stops.map((stop) => (
+              <option key={stop.id} value={stop.id}>
+                {stop.name} ({stop.estimated_arrival})
+              </option>
+            ))}
+          </select>
+
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={handleBuyTicket}
+              disabled={!selectedStop}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg disabled:opacity-50"
+            >
+              Buy Ticket
+            </button>
+
+            {ticketBought && (
+              <button
+                onClick={() => setShowTicketModal(true)}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg"
+              >
+                Show Ticket
+              </button>
+            )}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+      )}
+
+      {/* Ticket Modal */}
+      {showTicketModal && selectedBus && selectedStop && (
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+          onClick={() => setShowTicketModal(false)}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          <div
+            className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold mb-2">{selectedBus.name}</h2>
+            <p className="mb-2">
+              Stop: {selectedStop.name} <br />
+              Arrival: {selectedStop.estimated_arrival}
+            </p>
+            <QRCodeCanvas
+              value={`Bus:${selectedBus.id}-Stop:${selectedStop.id}-Time:${selectedStop.estimated_arrival}`}
+              size={200}
+            />
+            <button
+              className="mt-4 px-4 py-2 bg-gray-500 text-white rounded-lg"
+              onClick={() => setShowTicketModal(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Yellow div above bottom buttons */}
+      {selectedBus && (
+        <div className="bg-yellow-400 text-black text-center py-3 font-semibold mt-4">
+          Active Bus Maps
+        </div>
+      )}
+
+      {/* Mirror Bus Buttons Below Map */}
+      <div className="flex flex-wrap justify-center gap-3 my-4">
+        {amanaData.bus_lines.map((bus) => (
+          <button
+            key={`mirror-${bus.id}`}
+            onClick={() => {
+              setSelectedBusId(bus.id);
+              setSelectedStopId(null);
+              setTicketBought(false);
+            }}
+            className={`px-4 py-2 rounded-lg border ${
+              selectedBusId === bus.id ? "bg-blue-500 text-white" : "bg-gray-100 text-black"
+            }`}
+          >
+            {bus.route_number} - {bus.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Bus Stops Table */}
+      {selectedBus && (
+        <div className="overflow-x-auto mt-4">
+          <table className="min-w-full border border-gray-200 text-sm text-left">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="px-4 py-2 border">Stop</th>
+                <th className="px-4 py-2 border">Arrival Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {selectedBus.bus_stops.map((stop) => (
+                <tr key={stop.id}>
+                  <td className="px-4 py-2 border">{stop.name}</td>
+                  <td className="px-4 py-2 border">{stop.estimated_arrival}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Footer */}
+      <Footer />
+    </main>
   );
 }
